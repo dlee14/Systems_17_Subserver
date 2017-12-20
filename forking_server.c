@@ -12,14 +12,23 @@ static void sighandler(int signo) {
 }
 
 int main() {
+
+  signal(SIGINT, sighandler);
+
   int from_client;
-  int server = getpid();
+  int server;
   while (1) {
     // Setup subserver
     from_client = server_setup();
-    if (getpid() != server) {
-      // Subserver
+    int f = fork();
+    if (f) {
+      char sid[8];
+      sprintf(sid, "%d", getpid());
+      remove("luigi");
+      printf("[server %s] setup: removed wkp\n", sid);
+    } else {
       subserver(from_client);
+      exit(0);
     }
   }
   return 0;
@@ -41,7 +50,7 @@ void subserver(int from_client) {
 void process(char * s) {
   int i = 0;
   while(s[i]) {
-    s[i] = 'Q';
-    i++;
+    s[i] = '_';
+    i = i + 2;
   }
 }

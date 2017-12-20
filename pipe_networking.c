@@ -11,24 +11,17 @@ returns the file descriptor for the upstream pipe.
 int server_setup() {
   int from_client;
   char buffer[HANDSHAKE_BUFFER_SIZE];
+  char sid[8];
+  sprintf(sid, "%d", getpid());
 
   // Create WKP
   mkfifo("luigi", 0600);
 
   // Connect to client
-  printf("[server] setup: making wkp\n");
+  printf("[server %s] setup: making wkp, waiting for connection...\n\n", sid);
   from_client = open( "luigi", O_RDONLY, 0); // Open
-  printf("[server] setup: I got a job for you, subserver!\n");
-
-  int f = fork();
-  if (!f) {
-    // If subserver, don't delete luigi!
-    return from_client;
-  } else {
-    remove("luigi");
-    printf("[server] setup: removed wkp\n");
-    return from_client; // File descriptor for upstream pipe
-  }
+  printf("\n[server %s] setup: I got a job for you, subserver!\n", sid);
+  return from_client;
 }
 
 
@@ -57,7 +50,7 @@ int server_connect(int from_client) {
 
   // Read from client; Block until there is something to read
   read(from_client, buffer, sizeof(buffer));
-  printf("[server %s] connect: received [%s]\n", ssid, buffer);
+  printf("[subserver %s] connect: received [%s]\n", ssid, buffer);
 
   return to_client;
 }
@@ -107,9 +100,11 @@ int client_handshake(int *to_server) {
 
   int from_server;
   char buffer[HANDSHAKE_BUFFER_SIZE];
+  char sid[8];
+  sprintf(sid, "%d", getpid());
 
   //send pp name to server
-  printf("[client] setup: connecting to wkp\n");
+  printf("[client %s] setup: connecting to wkp\n", sid);
   *to_server = open( "luigi", O_WRONLY, 0);
   if ( *to_server == -1 )
   exit(1);
@@ -126,11 +121,11 @@ int client_handshake(int *to_server) {
   read(from_server, buffer, sizeof(buffer));
 
   /*validate buffer code goes here */
-  printf("[client] setup: received [%s]\n", buffer);
+  printf("[client %s] setup: received [%s]\n", sid, buffer);
 
   //remove pp
   remove(buffer);
-  printf("[client] setup: removed pp\n");
+  printf("[client %s] setup: removed pp\n", sid);
 
   //send ACK to server
   write(*to_server, ACK, sizeof(buffer));
